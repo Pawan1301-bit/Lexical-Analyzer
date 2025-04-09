@@ -1,0 +1,122 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(to bottom, #14143A, #3D2C5E);
+    color: white;
+    min-height: 100vh;
+    text-align: center;
+}
+
+header {
+    padding: 8px;
+    /* display: flex;
+    justify-content: space-between; */
+    text-align: center;
+}
+
+header ul {
+    /* padding-top: px; */
+    margin-left: 40vw;
+    text-align: center;
+    /* display: flex; */
+    gap: 24px;
+    display: flex;
+    list-style-type: none;
+}
+
+header li a {
+    color: white;
+    text-decoration: none;
+}
+
+header li:hover {
+    border-bottom: 2px solid white;
+    transition-duration: 100ms;
+}
+
+header img {
+    height: 30px;
+    width: 60px;
+}
+
+header button {
+    margin-top: 10px;
+    height: 40px;
+    border-radius: 70px;
+}
+
+button:hover {
+    transform: scale(1.05);
+    transition-duration: 1000ms;
+}
+
+.codebox {
+    padding: 8px;
+}
+
+.codebox textarea {
+    box-shadow: 0 20px 25px -5px #433461, 0 10px 10px -5px #433461;
+    color: white;
+    padding: 4px;
+    margin-top: 10px;
+    height: 280px;
+    width: 380px;
+    background: linear-gradient(to right, #20103D, #2E1653);
+    opacity: 0.6;
+    /* Background opacity */
+    backdrop-filter: blur(12px);
+    /* md = 12px */
+    border: 1px solid #3B2467;
+    box-shadow: 0 10px 15px -3px #20103D, 0 4px 6px -2px #20103D;
+    /* lg shadow */
+    overflow: scroll;
+    font-size: large;
+    font-style: italic;
+}
+
+.btn {
+    padding: 10px;
+
+}
+
+.btn button {
+    color: white;
+    padding: 5px;
+    margin: 6px 8px;
+    border-radius: 30px;
+    box-shadow: 0 10px 15px -3px #20103D, 0 4px 6px -2px #20103D;
+    background: linear-gradient(to right, #20103D, #2E1653);
+    opacity: 0.8;
+    padding: 8px;
+    font-size: 15px;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+#resultTable {
+    margin: 50px auto;
+    /* top-bottom: 50px, left-right: auto to center */
+    border-collapse: collapse;
+    min-width: 400px;
+    /* background-color: white; */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#resultTable th,
+#resultTable td {
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    text-align: center;
+}
+
+footer{
+    /* position: fixed; */
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    font-size: large;
+    font-weight: 600;
+    padding: 10px;
+    display: flex;
+    margin-top: 10px;
+    justify-content: center; /* centers content horizontally */
+}
