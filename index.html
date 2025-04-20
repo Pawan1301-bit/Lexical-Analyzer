@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C Code Lexical Analyzer</title>
+    <title>C Code 1Lexical Analyzer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -24,40 +24,50 @@
                 <a href="other pages/about.html" target="_blank">About</a>
             </li>
         </ul>
-        <button><a href="https://github.com/Pawan1301-bit" target="_blank"> <img src="icons/githun.png" alt="GitHub">
+        <button><a href="https://github.com/Pawan1301-bit/Lexical-Analyzer" target="_blank"> <img src="icons/githun.png"
+                    alt="GitHub">
             </a> </button>
     </header>
 
 
     <div class="codebox">
-        <textarea id="codeInput"  placeholder="enter your text here..."></textarea>
+        <textarea id="codeInput" placeholder="enter your text here..."></textarea>
         <div class="btn">
             <button onclick="analyzeCode()">Analyze Code</button>
-            <button onclick="clearAll()">Clear All </button>
+            <!-- <button onclick="syntaxOnly()">Analyze Syntax</button> -->
+            <button onclick="clearAll()">Clear All</button>
         </div>
+
     </div>
 
 
-  
 
-    <h2>Lexical Analysis Results:</h2>
+
+    <h2>Lexical Analysis Results : </h2>
     <table id="resultTable">
-      <thead>
-        <tr>
-          <th>Token</th>
-          <th>Type</th>
-          <th>Line</th>
-          <th>Position</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+        <thead>
+            <tr>
+                <th>Token</th>
+                <th>Type</th>
+                <th>Line</th>
+                <th>Position</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
     </table>
 
-    <footer>
-        This Application is build under the mentor ship of Dr Rishi Kumar Sir
-    </footer>
+    <!-- After the result table -->
+    <div>
+        <h2>Syntax Analyzer : </h2>
+        <div id="syntaxResult"></div>
+    </div>
 
-  <script src="script.js"></script>
+
+    <!-- <footer>
+        This Application is build under the mentor ship of Dr Rishi Kumar Sir 🥵🥵
+    </footer> -->
+
+    <script src="script.js"></script>
 </body>
 
 </html>
