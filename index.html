@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C Code 1Lexical Analyzer</title>
+    <title>C Code Phase Analyzer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,7 +12,7 @@
     <!-- <div class="container"> -->
 
     <header>
-        <h2>C Code Lexical Analyzer</h2>
+        <h2>C Code Phase Analyzer</h2>
         <ul>
             <li>
                 <a href="index.html" target="_blank">Home</a>
@@ -31,10 +31,9 @@
 
 
     <div class="codebox">
-        <textarea id="codeInput" placeholder="enter your text here..."></textarea>
+        <textarea id="codeInput" placeholder="enter your c code here..."></textarea>
         <div class="btn">
             <button onclick="analyzeCode()">Analyze Code</button>
-            <!-- <button onclick="syntaxOnly()">Analyze Syntax</button> -->
             <button onclick="clearAll()">Clear All</button>
         </div>
 
@@ -56,16 +55,27 @@
         <tbody></tbody>
     </table>
 
-    <!-- After the result table -->
     <div>
         <h2>Syntax Analyzer : </h2>
         <div id="syntaxResult"></div>
     </div>
 
+    <div>
+        <h2>Semantic Analyzer :</h2>
+        <div id="semanticResult" class="result-section">
+        </div>
+    </div>
 
-    <!-- <footer>
-        This Application is build under the mentor ship of Dr Rishi Kumar Sir 🥵🥵
-    </footer> -->
+    <div>
+        <h2>Intermediate Code Generator (ICG):</h2>
+        <div id="icgResult" class="result-section"></div>
+    </div>
+    
+
+
+    <footer>
+        This Application is build under the mentorship of Dr Rishi Kumar Sir
+    </footer>
 
     <script src="script.js"></script>
 </body>
