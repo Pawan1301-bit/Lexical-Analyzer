@@ -31,7 +31,7 @@
 
 
     <div class="codebox">
-        <textarea id="codeInput" placeholder="enter your c code here..."></textarea>
+        <textarea id="codeInput" class="codeInput" placeholder="enter your c code here..."></textarea>
         <div class="btn">
             <button onclick="analyzeCode()">Analyze Code</button>
             <button onclick="clearAll()">Clear All</button>
@@ -66,11 +66,11 @@
         </div>
     </div>
 
-    <div>
+    <div >
         <h2>Intermediate Code Generator (ICG):</h2>
-        <div id="icgResult" class="result-section"></div>
+        <div id="icgResult"></div>
     </div>
-    
+
 
 
     <footer>
@@ -78,6 +78,16 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        // saving code in localStorage
+        window.onload = function () {
+            let code = localStorage.getItem("code");
+            if (code) {
+                document.getElementById('codeInput').value = code;
+            }
+        };
+    </script>
+
 </body>
 
 </html>

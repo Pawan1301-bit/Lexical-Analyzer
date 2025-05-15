@@ -120,6 +120,7 @@ function syntaxAnalyzer(code) {
     return errors;
 }
 
+// SemanticAnalyzer function
 function semanticAnalyzer(code) {
     const lines = code.split('\n');
     const declaredVars = new Map(); // varName -> type
@@ -265,13 +266,94 @@ function isTypeCompatible(expectedType, value) {
 }
 
 
+//Intermediate code generator 
+
+function generate3AC(cCode) {
+    const lines = cCode.split('\n').map(line => line.trim());
+    const tac = [];
+    let tempCount = 1;
+
+    const declarationRegex = /^int\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+);$/;
+
+    function tokenize(expr) {
+        return expr.match(/[a-zA-Z_][a-zA-Z0-9_]*|\d+|[+\-*/=()]/g);
+    }
+
+    function infixToPostfix(tokens) {
+        const precedence = { '+': 1, '-': 1, '*': 2, '/': 2 };
+        const output = [];
+        const stack = [];
+
+        for (let token of tokens) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*$|^\d+$/.test(token)) {
+                output.push(token);
+            } else if ("+-*/".includes(token)) {
+                while (
+                    stack.length &&
+                    precedence[stack[stack.length - 1]] >= precedence[token]
+                ) {
+                    output.push(stack.pop());
+                }
+                stack.push(token);
+            }
+        }
+
+        while (stack.length) output.push(stack.pop());
+        return output;
+    }
+
+    function generateTACFromExpression(lhs, rhs) {
+        const tokens = tokenize(rhs);
+        const postfix = infixToPostfix(tokens);
+        const stack = [];
+        const code = [];
+
+        for (let token of postfix) {
+            if (/^[a-zA-Z_][a-zA-Z0-9_]*$|^\d+$/.test(token)) {
+                stack.push(token);
+            } else if ("+-*/".includes(token)) {
+                const op2 = stack.pop();
+                const op1 = stack.pop();
+                const temp = `t${tempCount++}`;
+                code.push(`${temp} = ${op1} ${token} ${op2}`);
+                stack.push(temp);
+            }
+        }
+
+        const result = stack.pop();
+        code.push(`${lhs} = ${result}`);
+        return code;
+    }
+
+    for (let line of lines) {
+        if (line.startsWith("int")) {
+            const match = line.match(declarationRegex);
+            if (match) {
+                const [_, lhs, rhs] = match;
+                if (/^[a-zA-Z_][a-zA-Z0-9_]*$|^\d+$/.test(rhs)) {
+                    tac.push(`${lhs} = ${rhs}`);
+                } else {
+                    tac.push(...generateTACFromExpression(lhs, rhs));
+                }
+            }
+        }
+    }
+
+    // Output the TAC
+    return tac;
+}
 
 
 // Display Results
 function analyzeCode() {
     const code = document.getElementById("codeInput").value;
+
+    //storing in local storage
+    localStorage.setItem("code", code);
+
     const resultTable = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
     const syntaxResult = document.getElementById("syntaxResult");
+    const tac = generate3AC(code)
 
     resultTable.innerHTML = "";
     syntaxResult.innerHTML = "";
@@ -311,6 +393,19 @@ function analyzeCode() {
         });
     }
 
+    //Intermediate Code Generator
+      const container = document.getElementById("icgResult");
+      const textarea = document.createElement("textarea");
+    //   textarea.rows = 4;
+    //   textarea.cols = 50;
+      textarea.placeholder = "Enter text here...";
+      textarea.id = "ICG";
+
+      container.appendChild(textarea);
+      tac.forEach(line => textarea.value += line + '\n');
+      
+      textarea.readOnly = true
+
 }
 
 // Clear Input and Output
@@ -318,6 +413,7 @@ function clearAll() {
     document.getElementById("codeInput").value = "";
     document.getElementById("resultTable").getElementsByTagName('tbody')[0].innerHTML = "";
     document.getElementById("syntaxResult").innerHTML = "";
+    localStorage.clear("code");
 }
 
 // function semanticAnalyzer(code) {

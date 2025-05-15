@@ -74,6 +74,26 @@ button:hover {
     font-style: italic;
 }
 
+#ICG{
+    box-shadow: 0 20px 25px -5px #433461, 0 10px 10px -5px #433461;
+    color: white;
+    padding: 4px;
+    margin-top: 10px;
+    height: 250px;
+    width: 330px;
+    background: linear-gradient(to right, #20103D, #2E1653);
+    opacity: 0.6;
+    /* Background opacity */
+    backdrop-filter: blur(12px);
+    /* md = 12px */
+    border: 1px solid #3B2467;
+    box-shadow: 0 10px 15px -3px #20103D, 0 4px 6px -2px #20103D;
+    /* lg shadow */
+    overflow: scroll;
+    font-size: large;
+    font-style: italic;
+}
+
 .btn {
     padding: 10px;
 
