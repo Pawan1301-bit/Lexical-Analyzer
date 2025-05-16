@@ -121,6 +121,7 @@ function syntaxAnalyzer(code) {
 }
 
 // SemanticAnalyzer function
+// SemanticAnalyzer function
 function semanticAnalyzer(code) {
     const lines = code.split('\n');
     const declaredVars = new Map(); // varName -> type
@@ -160,7 +161,7 @@ function semanticAnalyzer(code) {
 
             if (rhs) {
                 const value = rhs.split('=')[1].trim();
-                if (!isTypeCompatible(type, value)) {
+                if (!isExpressionCompatible(type, value, declaredVars)) {
                     errors.push(`Type mismatch for variable "${name}" at line ${lineIndex + 1}`);
                 }
             }
@@ -178,7 +179,7 @@ function semanticAnalyzer(code) {
                 errors.push(`Undeclared variable "${name}" used at line ${lineIndex + 1}`);
             } else {
                 const expectedType = declaredVars.get(name);
-                if (!isTypeCompatible(expectedType, value)) {
+                if (!isExpressionCompatible(expectedType, value, declaredVars)) {
                     errors.push(`Type mismatch for variable "${name}" at line ${lineIndex + 1}`);
                 }
             }
@@ -202,67 +203,165 @@ function semanticAnalyzer(code) {
             }
         });
 
-       // 3. Handle printf format specifier validation
-const printfRegex = /printf\s*\(\s*("(.*?)")\s*,\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/;
-const printfStringOnlyRegex = /printf\s*\(\s*("(.*?)")\s*\)/; // regex to match printf with only string literals
+        // Handle printf format specifier validation
+        const printfRegex = /printf\s*\(\s*("(.*?)")\s*,\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\)/;
+        const printfStringOnlyRegex = /printf\s*\(\s*("(.*?)")\s*\)/; // regex to match printf with only string literals
 
-// Check if the line is a printf with just a string literal
-const printfStringMatch = trimmed.match(printfStringOnlyRegex);
-if (printfStringMatch) {
-    // If it's just a string literal inside printf, no error should occur
-    return;
-}
-
-const printfMatch = trimmed.match(printfRegex);
-if (printfMatch) {
-    const formatString = printfMatch[1]; // full string with quotes
-    const formatContent = printfMatch[2]; // inside the quotes
-    const varName = printfMatch[3];
-
-    if (!declaredVars.has(varName)) {
-        errors.push(`Undeclared variable "${varName}" used in printf at line ${lineIndex + 1}`);
-    } else {
-        const varType = declaredVars.get(varName);
-        const formatMap = {
-            int: "%d",
-            float: "%f",
-            double: "%lf",
-            char: "%c",
-            bool: "%d", // C prints bool as 0/1
-        };
-
-        const expectedFormat = formatMap[varType];
-
-        if (!formatContent.includes("%")) {
-            // No format specifier, check if it's a simple string output
-            if (!formatContent.includes("\"")) {
-                errors.push(`Missing format specifier in printf at line ${lineIndex + 1}`);
-            }
-        } else if (!formatContent.includes(expectedFormat)) {
-            errors.push(`Incorrect format specifier "${formatContent}" for variable "${varName}" of type "${varType}" at line ${lineIndex + 1}`);
+        // Check if the line is a printf with just a string literal
+        const printfStringMatch = trimmed.match(printfStringOnlyRegex);
+        if (printfStringMatch) {
+            // If it's just a string literal inside printf, no error should occur
+            return;
         }
-    }
-} else if (trimmed.startsWith("printf") && !trimmed.includes(",")) {
-    errors.push(`Missing format specifier or variable in printf at line ${lineIndex + 1}`);
-}
 
+        const printfMatch = trimmed.match(printfRegex);
+        if (printfMatch) {
+            const formatString = printfMatch[1]; // full string with quotes
+            const formatContent = printfMatch[2]; // inside the quotes
+            const varName = printfMatch[3];
 
+            if (!declaredVars.has(varName)) {
+                errors.push(`Undeclared variable "${varName}" used in printf at line ${lineIndex + 1}`);
+            } else {
+                const varType = declaredVars.get(varName);
+                const formatMap = {
+                    int: "%d",
+                    float: "%f",
+                    double: "%lf",
+                    char: "%c",
+                    bool: "%d", // C prints bool as 0/1
+                };
+
+                const expectedFormat = formatMap[varType];
+
+                if (!formatContent.includes("%")) {
+                    // No format specifier, check if it's a simple string output
+                    if (!formatContent.includes("\"")) {
+                        errors.push(`Missing format specifier in printf at line ${lineIndex + 1}`);
+                    }
+                } else if (!formatContent.includes(expectedFormat)) {
+                    errors.push(`Incorrect format specifier "${formatContent}" for variable "${varName}" of type "${varType}" at line ${lineIndex + 1}`);
+                }
+            }
+        } else if (trimmed.startsWith("printf") && !trimmed.includes(",")) {
+            errors.push(`Missing format specifier or variable in printf at line ${lineIndex + 1}`);
+        }
     });
 
     return errors;
 }
 
-// Helper
+/**
+ * Check if an expression is compatible with the expected type
+ * @param {string} expectedType - The expected variable type
+ * @param {string} expression - The expression to evaluate
+ * @param {Map} declaredVars - Map of declared variables and their types
+ * @returns {boolean} - Whether the expression is compatible with the type
+ */
+function isExpressionCompatible(expectedType, expression, declaredVars) {
+    expression = expression.trim();
+    
+    // Check if it's a simple value first
+    if (isTypeCompatible(expectedType, expression)) {
+        return true;
+    }
+    
+    // Handle complex expressions (with arithmetic operators)
+    // First, check if the expression contains variables, and if so, validate that they're compatible
+    const variableRegex = /[a-zA-Z_][a-zA-Z0-9_]*/g;
+    const variables = expression.match(variableRegex);
+    
+    if (variables) {
+        for (const varName of variables) {
+            // Skip if it's a number or a keyword like "true" or "false"
+            if (!isNaN(varName) || ["true", "false"].includes(varName)) {
+                continue;
+            }
+            
+            // Check if the variable is declared
+            if (!declaredVars.has(varName)) {
+                // This will be caught by the undeclared variable check elsewhere
+                continue;
+            }
+            
+            const varType = declaredVars.get(varName);
+            
+            // For numeric operations, check if the variable type is compatible with the expected type
+            if (["int", "float", "double"].includes(expectedType)) {
+                // Numeric types can be combined, but result needs numeric type
+                if (!["int", "float", "double", "char"].includes(varType)) {
+                    return false;
+                }
+            } else if (expectedType === "bool") {
+                // Bool expressions can use numeric values or other bools
+                if (!["int", "float", "double", "bool", "char"].includes(varType)) {
+                    return false;
+                }
+            } else if (expectedType === "char") {
+                // Char operations are more restricted
+                // In C, char is essentially a small integer type, so numeric operations are allowed
+                if (!["int", "float", "double", "char"].includes(varType)) {
+                    return false;
+                }
+            }
+        }
+        
+        // For arithmetic expressions, determine the result type based on the operands
+        // This is simplified - in a real analyzer, you'd need to fully parse the expression
+        if (containsArithmeticOperators(expression)) {
+            // If the expression contains arithmetic operators, it should result in a numeric type
+            return ["int", "float", "double"].includes(expectedType);
+        }
+    }
+    
+    // If we've made it here, consider the expression compatible
+    return true;
+}
+
+/**
+ * Check if a simple value is compatible with the expected type
+ */
 function isTypeCompatible(expectedType, value) {
     value = value.trim();
 
-    if (/^".*"$/.test(value)) return expectedType === "char"; // Treat as string literal
-    if (/^'.'$/.test(value)) return expectedType === "char";
-    if (!isNaN(value)) return ["int", "float", "double"].includes(expectedType);
-    if (value === "true" || value === "false") return expectedType === "bool";
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) return true; // can't resolve another variable
+    // Check for string literals (enclosed in double quotes)
+    if (/^".*"$/.test(value)) {
+        // String literals are only compatible with char arrays, not with simple char or other types
+        return false; // In C, you can't assign string literals directly to variables except char arrays
+    }
+    
+    // Check for character literals (enclosed in single quotes)
+    if (/^'.'$/.test(value)) {
+        return expectedType === "char";
+    }
+    
+    // Numeric values
+    if (!isNaN(value)) {
+        return ["int", "float", "double", "char"].includes(expectedType);
+    }
+    
+    // Boolean literals
+    if (value === "true" || value === "false") {
+        return expectedType === "bool";
+    }
+    
+    // Variable references
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+        return true; // can't resolve another variable without further context
+    }
 
     return false;
+}
+
+/**
+ * Check if an expression contains arithmetic operators
+ */
+function containsArithmeticOperators(expression) {
+    // Remove any string literals first
+    const cleanedExpr = expression.replace(/"([^"\\]|\\.)*"/g, '').replace(/'[^']*'/g, '');
+    
+    // Check for arithmetic operators
+    return /[+\-*/%]/.test(cleanedExpr);
 }
 
 
@@ -393,13 +492,19 @@ function analyzeCode() {
         });
     }
 
+
     //Intermediate Code Generator
       const container = document.getElementById("icgResult");
+      const existing = document.getElementById("ICG");
+      if (existing) {
+        container.removeChild(existing);
+      }
       const textarea = document.createElement("textarea");
     //   textarea.rows = 4;
     //   textarea.cols = 50;
       textarea.placeholder = "Enter text here...";
       textarea.id = "ICG";
+      textarea.value = '//Three address code \n'
 
       container.appendChild(textarea);
       tac.forEach(line => textarea.value += line + '\n');

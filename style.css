@@ -79,8 +79,8 @@ button:hover {
     color: white;
     padding: 4px;
     margin-top: 10px;
-    height: 250px;
-    width: 330px;
+    height: 220px;
+    width: 300px;
     background: linear-gradient(to right, #20103D, #2E1653);
     opacity: 0.6;
     /* Background opacity */
