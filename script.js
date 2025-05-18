@@ -443,6 +443,75 @@ function generate3AC(cCode) {
 }
 
 
+//code optimizer
+function optimizeTAC(tacArray) {
+  const constantMap = {};
+  const valueMap = {};
+  const optimized = [];
+  const usedVars = new Set();
+
+  // Helper to check if a string is a number
+  const isNumber = str => !isNaN(Number(str));
+
+  // First pass: Constant folding & copy propagation
+  for (let line of tacArray) {
+    let match = line.match(/^(\w+)\s*=\s*(\w+|\d+)\s*([\+\-\*\/])\s*(\w+|\d+)$/);
+    if (match) {
+      let [, target, left, op, right] = match;
+
+      // Replace if known constants
+      if (left in constantMap) left = constantMap[left];
+      if (right in constantMap) right = constantMap[right];
+
+      if (isNumber(left) && isNumber(right)) {
+        let result;
+        switch (op) {
+          case '+': result = Number(left) + Number(right); break;
+          case '-': result = Number(left) - Number(right); break;
+          case '*': result = Number(left) * Number(right); break;
+          case '/': result = Number(left) / Number(right); break;
+        }
+        constantMap[target] = result;
+        optimized.push(`${target} = ${result}`);
+        continue;
+      }
+
+      // No folding possible, but remember what this is
+      optimized.push(`${target} = ${left} ${op} ${right}`);
+      valueMap[target] = `${left} ${op} ${right}`;
+    }
+
+    else if ((match = line.match(/^(\w+)\s*=\s*(\w+|\d+)$/))) {
+      const [, target, source] = match;
+
+      // Constant copy
+      if (isNumber(source)) {
+        constantMap[target] = source;
+        optimized.push(`${target} = ${source}`);
+      }
+      // Propagate copy if known
+      else if (source in constantMap) {
+        constantMap[target] = constantMap[source];
+        optimized.push(`${target} = ${constantMap[source]}`);
+      }
+      else {
+        optimized.push(`${target} = ${source}`);
+        valueMap[target] = source;
+      }
+    }
+
+    else {
+      // fallback: no match
+      optimized.push(line);
+    }
+  }
+
+  return optimized;
+}
+
+
+
+
 // Display Results
 function analyzeCode() {
     const code = document.getElementById("codeInput").value;
@@ -453,6 +522,8 @@ function analyzeCode() {
     const resultTable = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
     const syntaxResult = document.getElementById("syntaxResult");
     const tac = generate3AC(code)
+    const optimizer  = optimizeTAC(tac);
+    console.log("optimzer", optimizer )
 
     resultTable.innerHTML = "";
     syntaxResult.innerHTML = "";
@@ -499,10 +570,10 @@ function analyzeCode() {
       if (existing) {
         container.removeChild(existing);
       }
+      
       const textarea = document.createElement("textarea");
     //   textarea.rows = 4;
     //   textarea.cols = 50;
-      textarea.placeholder = "Enter text here...";
       textarea.id = "ICG";
       textarea.value = '//Three address code \n'
 
@@ -511,6 +582,19 @@ function analyzeCode() {
       
       textarea.readOnly = true
 
+      //code optimizer
+      const codeOp = document.getElementById("coResult");
+      const existingCo = document.getElementById("CO");
+      if (existingCo) {
+        codeOp.removeChild(existingCo);
+      }
+     const newtext = document.createElement("textarea");
+     newtext.id = "CO";
+     newtext.value = '//Code Optimizer \n'
+
+     codeOp.appendChild(newtext);
+     optimizer.forEach(ind => newtext.value += ind + '\n');
+  
 }
 
 // Clear Input and Output
