@@ -121,10 +121,9 @@ function syntaxAnalyzer(code) {
 }
 
 // SemanticAnalyzer function
-// SemanticAnalyzer function
 function semanticAnalyzer(code) {
     const lines = code.split('\n');
-    const declaredVars = new Map(); // varName -> type
+    const symbol_table = new Map(); // varName -> type
     const errors = [];
 
     const varDeclarationRegex = /\b(int|float|char|double|bool)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(=\s*[^;]+)?;/;
@@ -153,15 +152,15 @@ function semanticAnalyzer(code) {
                 errors.push(`"bool" used without including <stdbool.h> at line ${lineIndex + 1}`);
             }
 
-            if (declaredVars.has(name)) {
+            if (symbol_table.has(name)) {
                 errors.push(`Variable "${name}" redeclared at line ${lineIndex + 1}`);
             } else {
-                declaredVars.set(name, type);
+                symbol_table.set(name, type);
             }
 
             if (rhs) {
                 const value = rhs.split('=')[1].trim();
-                if (!isExpressionCompatible(type, value, declaredVars)) {
+                if (!isExpressionCompatible(type, value, symbol_table)) {
                     errors.push(`Type mismatch for variable "${name}" at line ${lineIndex + 1}`);
                 }
             }
@@ -175,11 +174,11 @@ function semanticAnalyzer(code) {
             const name = assignMatch[1];
             const value = assignMatch[2].trim();
 
-            if (!declaredVars.has(name)) {
+            if (!symbol_table.has(name)) {
                 errors.push(`Undeclared variable "${name}" used at line ${lineIndex + 1}`);
             } else {
-                const expectedType = declaredVars.get(name);
-                if (!isExpressionCompatible(expectedType, value, declaredVars)) {
+                const expectedType = symbol_table.get(name);
+                if (!isExpressionCompatible(expectedType, value, symbol_table)) {
                     errors.push(`Type mismatch for variable "${name}" at line ${lineIndex + 1}`);
                 }
             }
@@ -192,7 +191,7 @@ function semanticAnalyzer(code) {
         const tokens = cleanedLine.split(/[^a-zA-Z0-9_]+/).filter(Boolean);
         tokens.forEach(token => {
             if (
-                !declaredVars.has(token) &&
+                !symbol_table.has(token) &&
                 !keywords.includes(token) &&
                 !["true", "false"].includes(token) &&
                 !operators.includes(token) &&
@@ -220,10 +219,10 @@ function semanticAnalyzer(code) {
             const formatContent = printfMatch[2]; // inside the quotes
             const varName = printfMatch[3];
 
-            if (!declaredVars.has(varName)) {
+            if (!symbol_table.has(varName)) {
                 errors.push(`Undeclared variable "${varName}" used in printf at line ${lineIndex + 1}`);
             } else {
-                const varType = declaredVars.get(varName);
+                const varType = symbol_table.get(varName);
                 const formatMap = {
                     int: "%d",
                     float: "%f",
@@ -255,10 +254,10 @@ function semanticAnalyzer(code) {
  * Check if an expression is compatible with the expected type
  * @param {string} expectedType - The expected variable type
  * @param {string} expression - The expression to evaluate
- * @param {Map} declaredVars - Map of declared variables and their types
+ * @param {Map} symbol_table - Map of declared variables and their types
  * @returns {boolean} - Whether the expression is compatible with the type
  */
-function isExpressionCompatible(expectedType, expression, declaredVars) {
+function isExpressionCompatible(expectedType, expression, symbol_table) {
     expression = expression.trim();
     
     // Check if it's a simple value first
@@ -279,12 +278,12 @@ function isExpressionCompatible(expectedType, expression, declaredVars) {
             }
             
             // Check if the variable is declared
-            if (!declaredVars.has(varName)) {
+            if (!symbol_table.has(varName)) {
                 // This will be caught by the undeclared variable check elsewhere
                 continue;
             }
             
-            const varType = declaredVars.get(varName);
+            const varType = symbol_table.get(varName);
             
             // For numeric operations, check if the variable type is compatible with the expected type
             if (["int", "float", "double"].includes(expectedType)) {
@@ -318,9 +317,8 @@ function isExpressionCompatible(expectedType, expression, declaredVars) {
     return true;
 }
 
-/**
- * Check if a simple value is compatible with the expected type
- */
+
+
 function isTypeCompatible(expectedType, value) {
     value = value.trim();
 
@@ -353,9 +351,8 @@ function isTypeCompatible(expectedType, value) {
     return false;
 }
 
-/**
- * Check if an expression contains arithmetic operators
- */
+
+
 function containsArithmeticOperators(expression) {
     // Remove any string literals first
     const cleanedExpr = expression.replace(/"([^"\\]|\\.)*"/g, '').replace(/'[^']*'/g, '');
@@ -366,7 +363,6 @@ function containsArithmeticOperators(expression) {
 
 
 //Intermediate code generator 
-
 function generate3AC(cCode) {
     const lines = cCode.split('\n').map(line => line.trim());
     const tac = [];
@@ -509,6 +505,59 @@ function optimizeTAC(tacArray) {
   return optimized;
 }
 
+function generateTargetCode(icg) {
+  const targetCode = [];
+  let regCount = 0;
+  const tempToRegister = {};
+
+  for (const line of icg) {
+    const parts = line.split(/\s*=\s*/);
+    const lhs = parts[0].trim();
+    const rhs = parts[1].trim();
+
+    // Handle direct assignment like: a = 10 or a = b
+    if (/^[a-zA-Z_]\w*$/.test(rhs) || /^[0-9]+$/.test(rhs)) {
+      const reg = `R${regCount++}`;
+      targetCode.push(`LOAD ${reg}, ${rhs}`);
+      targetCode.push(`STORE ${lhs}, ${reg}`);
+      tempToRegister[lhs] = reg;
+    }
+    // Handle 3-address code: t1 = a + b
+    else {
+      const [op1, operator, op2] = rhs.split(/\s+/);
+
+      const reg1 = `R${regCount++}`;
+      const reg2 = `R${regCount++}`;
+      const resultReg = `R${regCount++}`;
+
+      targetCode.push(`LOAD ${reg1}, ${op1}`);
+      targetCode.push(`LOAD ${reg2}, ${op2}`);
+
+      switch (operator) {
+        case '+':
+          targetCode.push(`ADD ${resultReg}, ${reg1}, ${reg2}`);
+          break;
+        case '-':
+          targetCode.push(`SUB ${resultReg}, ${reg1}, ${reg2}`);
+          break;
+        case '*':
+          targetCode.push(`MUL ${resultReg}, ${reg1}, ${reg2}`);
+          break;
+        case '/':
+          targetCode.push(`DIV ${resultReg}, ${reg1}, ${reg2}`);
+          break;
+        default:
+          targetCode.push(`; Unknown operator in line: ${line}`);
+          continue;
+      }
+
+      tempToRegister[lhs] = resultReg;
+    }
+  }
+
+  return targetCode;
+}
+
 
 
 
@@ -523,6 +572,8 @@ function analyzeCode() {
     const syntaxResult = document.getElementById("syntaxResult");
     const tac = generate3AC(code)
     const optimizer  = optimizeTAC(tac);
+    const target = generateTargetCode(tac)
+    // target.forEach(ind=>console.log(ind, "\n"))
     console.log("optimzer", optimizer )
 
     resultTable.innerHTML = "";
@@ -594,6 +645,20 @@ function analyzeCode() {
 
      codeOp.appendChild(newtext);
      optimizer.forEach(ind => newtext.value += ind + '\n');
+
+
+     //target code generator
+     const targetcode = document.getElementById("cgResult");
+      const existingCg = document.getElementById("CG");
+      if (existingCg) {
+        targetcode.removeChild(existingCg);
+      }
+     const newtext1 = document.createElement("textarea");
+     newtext1.id = "CG";
+     newtext1.value = '//Target Code Generator \n'
+
+     targetcode.appendChild(newtext1);
+     target.forEach(ind => newtext1.value += ind + '\n');
   
 }
 
